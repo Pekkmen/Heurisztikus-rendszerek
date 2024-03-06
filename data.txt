@@ -1,7 +1,10 @@
-N = 3, K = 7
-x: 22, y: 7
-x: 92, y: 4
-x: 12, y: 23
+N = 4, K = 7
 
+x: 6, y: 6
+x: 8, y: 2
+x: 4, y: 2
+x: 10, y: 6
+
+A pontok koordinátáit tartalmazó blokk előtt és után is kell lennie egy üres sornak!
 N = a körbeírandó pontok darabszáma
 K = a körbeíró poligon fokszáma
