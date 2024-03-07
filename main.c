@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 typedef struct Points
 {
@@ -7,7 +8,7 @@ typedef struct Points
 } Points;
 
 void printValues(Points *, int , int);
-int farthestPointFromCenter(Points *, Points);
+int farthestPointFromCenter(Points *, Points, int);
 
 int main(){
     // Opening the data file in "read" mode
@@ -50,33 +51,42 @@ int main(){
     printValues(points, number_of_points, number_of_poly_sides);
 
     // Calculating the center point of the area the points encircle
-    Points center_point = {0.0};
+    Points center_point = {0.0f};
     for(int i = 0; i < number_of_points; i++){
         center_point.x += points[i].x;
         center_point.y += points[i].y;
     }
     center_point.x = center_point.x / number_of_points;
     center_point.y = center_point.y / number_of_points;
-    printf("A pontok által közrezárt terület középpontja: x: %f, y: %f\n", center_point.x, center_point.y);
+    // Printing the coordinates of the center points for checkup
+    printf("\nA pontok által közrezárt terület középpontja: x: %f, y: %f\n", center_point.x, center_point.y);
 
     // Searching for the point farthest from the center point
-    int farthest_point_index = farthest_point_index = farthestPointFromCenter(points, center_point);
-    if(farthest_point_index < 0){
-        fprintf(stderr, "\nEncountered error while searching for the farthest point from the center!\n");
+    int farthest_index = -1;
+    double longest_distance_between_points = 0.0f;
+    for(int i = 0; i < number_of_points; i++){
+        // Calculating distance between points (sqrt((x2 - x1)^2 + (y2 - y1)^2))
+        double distance_between_points = sqrt(pow(center_point.x - points[i].x, 2) + pow(center_point.y - points[i].y, 2));
+        // If the checked distance is greater than the current one, update the longest distance accordingly
+        if(longest_distance_between_points < distance_between_points){
+            longest_distance_between_points = distance_between_points;
+            farthest_index = i;
+        }
+    }
+    // Checking if the farthest_index was update or not
+    if(farthest_index < 0) {
+        fprintf(stderr, "The farthest_index variable was not updated! Something went wrong!");
         return 1;
     }
+    // Printing the data of the farthest point with the distance from the center point for checkup
+    printf("Legtávolabbi pont indexe: %d az alábbi koordinátákkal: x: %f, y: %f. A pont távolsága a középponttól: %lf\n", farthest_index, points[farthest_index].x, points[farthest_index].y, longest_distance_between_points);
 
     return 0;
 }
 
 void printValues(Points *points, int number_of_points, int number_of_poly_sides){
-    printf("Körbeírandó pontok darabszáma = %d\nKörbeíró poligon fokszáma = %d\n", number_of_points, number_of_poly_sides);
+    printf("\nKörbeírandó pontok darabszáma = %d\nKörbeíró poligon fokszáma = %d\n", number_of_points, number_of_poly_sides);
     for(int i = 0; i < number_of_points; i++){
         printf("%d. pont -> x: %f, y: %f\n", i, points[i].x, points[i].y);
     }
-}
-
-int farthestPointFromCenter(Points *points, Points center_point){
-    WIP: FIND FARTHEST POINT FROM CENTER
-    return -1;
 }
