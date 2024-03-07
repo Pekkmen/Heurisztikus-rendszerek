@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <math.h>
 
-
 typedef struct Points
 {
     float x;
@@ -26,8 +25,8 @@ int main(){
         fclose(data_file);
         return 1;
     }
-    if(number_of_points == 0 || number_of_poly_vertices == 0){
-        fprintf(stderr, "\nData can not be 0! Initialize values with greater numbers than 0 or check the 'data.txt' file for correct formatting!\n");
+    if(number_of_points == 0 || number_of_poly_vertices < 3){
+        fprintf(stderr, "\nNumber of points can not be 0 OR the number of polygon verticies can not be less than 3! Initialize these values with greater numbers or check the 'data.txt' file for correct formatting!\n");
         fprintf(stderr, "N = %d\nK = %d\n", number_of_points, number_of_poly_vertices);
         fclose(data_file);
         return 1;
