@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 
+
 typedef struct Points
 {
     float x;
@@ -18,16 +19,16 @@ int main(){
         return 1;
     }
     
-    int number_of_points = 0, number_of_poly_sides = 0;
+    int number_of_points = 0, number_of_poly_vertices = 0;
     // Reading data from the file while checking for errors and not legal values
-    if(fscanf(data_file, "N = %d, K = %d", &number_of_points, &number_of_poly_sides) == EOF){
+    if(fscanf(data_file, "N = %d, K = %d", &number_of_points, &number_of_poly_vertices) == EOF){
         fprintf(stderr, "\nData couldn't be read!\n");
         fclose(data_file);
         return 1;
     }
-    if(number_of_points == 0 || number_of_poly_sides == 0){
+    if(number_of_points == 0 || number_of_poly_vertices == 0){
         fprintf(stderr, "\nData can not be 0! Initialize values with greater numbers than 0 or check the 'data.txt' file for correct formatting!\n");
-        fprintf(stderr, "N = %d\nK = %d\n", number_of_points, number_of_poly_sides);
+        fprintf(stderr, "N = %d\nK = %d\n", number_of_points, number_of_poly_vertices);
         fclose(data_file);
         return 1;
     }
@@ -48,7 +49,10 @@ int main(){
     fclose(data_file);
 
     // Printing data to check the values read from the text file
-    printValues(points, number_of_points, number_of_poly_sides);
+    printf("\nKEZDŐÉRTÉKEK:\nKörbeírandó pontok darabszáma = %d\nKörbeíró poligon fokszáma = %d\n", number_of_points, number_of_poly_vertices);
+    for(int i = 0; i < number_of_points; i++){
+        printf("%d. pont -> x: %f, y: %f\n", i, points[i].x, points[i].y);
+    }
 
     // Calculating the center point of the area the points encircle
     Points center_point = {0.0f};
@@ -81,12 +85,22 @@ int main(){
     // Printing the data of the farthest point with the distance from the center point for checkup
     printf("Legtávolabbi pont indexe: %d az alábbi koordinátákkal: x: %f, y: %f. A pont távolsága a középponttól: %lf\n", farthest_index, points[farthest_index].x, points[farthest_index].y, longest_distance_between_points);
 
-    return 0;
-}
-
-void printValues(Points *points, int number_of_points, int number_of_poly_sides){
-    printf("\nKörbeírandó pontok darabszáma = %d\nKörbeíró poligon fokszáma = %d\n", number_of_points, number_of_poly_sides);
-    for(int i = 0; i < number_of_points; i++){
-        printf("%d. pont -> x: %f, y: %f\n", i, points[i].x, points[i].y);
+    // Generating the points of the polygon (placed on a circle around the center point)
+    // x = r * cos(degree) + x_center;
+    // y = r * sin(degree) + y_center;
+    Points poly_verticies[number_of_poly_vertices];
+    double degree =  (2 * M_PI) / number_of_poly_vertices;
+    // radius = radius_of_farthest_point + shift (to place the points a bit farther from the radius of the farthest point)
+    double radius = longest_distance_between_points + 5.0; 
+    for(int i = 0; i < number_of_poly_vertices; i++){
+        poly_verticies[i].x = (float)(radius * cos(degree*(i+1)) + center_point.x);
+        poly_verticies[i].y = (float)(radius * sin(degree*(i+1)) + center_point.y);
     }
+    // Printing the generated coordinates of the polygon's verticies for checkup
+    printf("\nA pontok köré írt poligon csúcspontjainak koordinátái:\n");
+    for(int i = 0; i < number_of_poly_vertices; i++){
+        printf("%d. csúcs = x: %f, y: %f\n", i, poly_verticies[i].x, poly_verticies[i].y);
+    }
+
+    return 0;
 }
