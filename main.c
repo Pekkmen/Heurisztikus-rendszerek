@@ -107,7 +107,7 @@ int main(){
     }
 
     if(is_point_inside_poly(&points[0], poly_verticies, max_x, number_of_points, number_of_poly_vertices)) printf("\nDEBUG: INSIDE\n");
-    else printf("\nDEBUG: INSIDE\n");
+    else printf("\nDEBUG: OUTSIDE\n");
 
     return 0;
 }
@@ -172,12 +172,13 @@ bool is_point_inside_poly(Point *point_a, Point *poly_verticies, float max_x, in
         }
 
     }
-
-    // If the point is on the outside of the polygon the vector will intersect its edge an even number of times
+    // Checking for errors
     if(counter == -1){
         fprintf(stderr, "\nHiba történt a húzott vektor és a poligon egyes oldalainak metszéseinek vizsgálatakor!\n");
         exit(1);
     }
+    // If the point is on the outside of the polygon the vector will intersect its edge an odd number of times (BECAUSE OUR POINTS START INSIDE THE POLYGON!)
+    // The counter starts at -1, and odd + odd = even
     else if(counter % 2 == 0) return true;
     else return false;
 }
