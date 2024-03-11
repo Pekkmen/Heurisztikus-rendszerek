@@ -2,16 +2,19 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
-typedef struct Point
-{
+typedef struct Point{
     float x;
     float y;
 } Point;
 
 bool is_point_inside_poly(Point *, Point *, float, int, int);
+void hill_climbing_steepest_asc(Point *, Point *, int, int, float, float);
+float perimeter_of_polygon(Point *, int);
 
 int main(){
+    srand(time(NULL));
     // Opening the data file in "read" mode
     FILE *data_file = fopen("data.txt", "r");
     if(data_file == NULL){
@@ -109,6 +112,11 @@ int main(){
     if(is_point_inside_poly(&points[0], poly_verticies, max_x, number_of_points, number_of_poly_vertices)) printf("\nDEBUG: INSIDE\n");
     else printf("\nDEBUG: OUTSIDE\n");
 
+    // The hill climbing algorithm with the steepest ascent implementation
+    float distance = 0.5;
+    float stop_threshold = 0.05;
+    hill_climbing_steepest_asc(points, poly_verticies, number_of_points, number_of_poly_vertices, distance, stop_threshold);
+
     return 0;
 }
 
@@ -124,23 +132,6 @@ bool is_point_inside_poly(Point *point_a, Point *poly_verticies, float max_x, in
     // Check if the drawn vector containing the inspected point intersects any edge of the polygon (https://algorithmtutor.com/Computational-Geometry/Check-if-two-line-segment-intersect/)
     float d_1 = 0.0f, d_2 = 0.0f, d_3 = 0.0f, d_4 = 0.0f;
     for(int i = 0; i < number_of_poly_vertices; i++){
-        // if(i != number_of_poly_vertices -1){
-        //     d_1 = (poly_verticies[i].x - point_a->x) * (point_b.y - point_a->y) - (poly_verticies[i].y - point_a->y) * (point_b.x - point_a->x);
-        //     d_2 = (poly_verticies[i+1].x - point_a->x) * (point_b.y - point_a->y) - (poly_verticies[i+1].y - point_a->y) * (point_b.x - point_a->x);
-        //     d_3 = (point_a->x - poly_verticies[i].x) * (poly_verticies[i+1].y - poly_verticies[i].y) - (point_a->y - poly_verticies[i].y) * (poly_verticies[i+1].x - poly_verticies[i].x);
-        //     d_4 = (point_b.x - poly_verticies[i].x) * (poly_verticies[i+1].y - poly_verticies[i].y) - (point_b.y - poly_verticies[i].y) * (poly_verticies[i+1].x - poly_verticies[i].x);
-        //     printf("d_1 = %f, d_2 = %f, d_3 = %f, d_4 = %f\n", d_1, d_2, d_3, d_4);
-        // } else {
-        //     d_1 = (poly_verticies[i].x - point_a->x) * (point_b.y - point_a->y) - (poly_verticies[i].y - point_a->y) * (point_b.x - point_a->x);
-        //     d_2 = (poly_verticies[0].x - point_a->x) * (point_b.y - point_a->y) - (poly_verticies[0].y - point_a->y) * (point_b.x - point_a->x);
-        //     d_3 = (point_a->x - poly_verticies[i].x) * (poly_verticies[0].y - poly_verticies[i].y) - (point_a->y - poly_verticies[i].y) * (poly_verticies[0].x - poly_verticies[i].x);
-        //     d_4 = (point_b.x - poly_verticies[i].x) * (poly_verticies[i+1].y - poly_verticies[i].y) - (point_b.y - poly_verticies[i].y) * (poly_verticies[0].x - poly_verticies[i].x);
-        //     printf("Utolso kor d_1 = %f, d_2 = %f, d_3 = %f, d_4 = %f\n", d_1, d_2, d_3, d_4);
-        // }
-        // if(((d_1 < 0 && d_2 > 0) || (d_1 > 0 && d_2 < 0)) && ((d_3 > 0 && d_4 < 0) || (d_3 < 0 && d_4 > 0))){
-        //     counter++;
-        //     printf("METSZES\n");
-        // } 
         // https://www.youtube.com/watch?v=bvlIYX9cgls
         float alpha = -10000, beta = -10000;
         float x_1, y_1, x_2, y_2, x_3, y_3, x_4, y_4;
@@ -149,25 +140,25 @@ bool is_point_inside_poly(Point *point_a, Point *poly_verticies, float max_x, in
             x_2 = poly_verticies[i+1].x, y_2 = poly_verticies[i+1].y;
             x_3 = point_a->x, y_3 = point_a->y; 
             x_4 = point_b.x, y_4 = point_b.y;
-            printf("DEBUG: poly_verticies[%d], poly_verticies[%d]\n", i, i+1);
+            //printf("DEBUG: poly_verticies[%d], poly_verticies[%d]\n", i, i+1);
         } else {
             x_1 = poly_verticies[i].x, y_1 = poly_verticies[i].y;
             x_2 = poly_verticies[0].x, y_2 = poly_verticies[0].y;
             x_3 = point_a->x, y_3 = point_a->y; 
             x_4 = point_b.x, y_4 = point_b.y;
-            printf("DEBUG: poly_verticies[%d], poly_verticies[%d]\n", i, 0);
+            //printf("DEBUG: poly_verticies[%d], poly_verticies[%d]\n", i, 0);
         }
             alpha = ((x_4 - x_3) * (y_3 - y_1) - (y_4 - y_3) * (x_3 - x_1)) / ((x_4 - x_3) * (y_2 - y_1) - (y_4 - y_3)*(x_2 - x_1));
             beta = ((x_2 - x_1) * (y_3 - y_1) - (y_2 - y_1) * (x_3-x_1)) / ((x_4 - x_3) * (y_2 - y_1) - (y_4 - y_3)*(x_2 - x_1));
             // printf("point_a : x=%f, y=%f\npoint_b : x=%f, y=%f\npolyv[%d] : x=%f, y=%f\npolyv[%d] : x=%f, y=%f\n", x_3, y_3, x_4, y_4, i, x_1, y_1, 0, x_2, y_2);
-            printf("DEBUG: Alpha: %f, Beta: %f\n", alpha, beta);
+            //printf("DEBUG: Alpha: %f, Beta: %f\n", alpha, beta);
 
         if(alpha == - 10000 || beta == -10000){
             fprintf(stderr, "Az alpha és béta értéke nem módosult a rajzolt vektor és a poligon éleinek metszeteinek keresésekor!");
             exit(1);
         } else if(0.0 <= alpha && alpha <= 1.0 && 0.0 <= beta && beta <= 1.0){
             // If alpha and beta is between the values of 0 and 1, the two lines intersect
-            printf("DEBUG: intersect!\n");
+            //printf("DEBUG: intersect!\n");
             counter++;
         }
 
@@ -181,4 +172,72 @@ bool is_point_inside_poly(Point *point_a, Point *poly_verticies, float max_x, in
     // The counter starts at -1, and odd + odd = even
     else if(counter % 2 == 0) return true;
     else return false;
+}
+
+float perimeter_of_polygon(Point *poly_vertices, int number_of_poly_vertices){
+    float perimeter = 0.0f;
+    float a_x, a_y, b_x, b_y;
+    for(int i = 0; i < number_of_poly_vertices - 1; i++){
+        a_x = poly_vertices[i].x;
+        a_y = poly_vertices[i].y;
+        b_x = poly_vertices[i+1].x;
+        b_y = poly_vertices[i+1].y;
+        // Calculate the distance between the vertices of the poly and sum them to the perimeter
+        perimeter += sqrt(pow(b_x - a_x, 2) + pow(b_y - a_y, 2));
+    }
+    // Calculate the distance between the "last two" vertices manually
+    a_x = poly_vertices[number_of_poly_vertices-1].x;
+    a_y = poly_vertices[number_of_poly_vertices-1].y;
+    b_x = poly_vertices[0].x;
+    b_y = poly_vertices[0].y;
+    perimeter += sqrt(pow(b_x - a_x, 2) + pow(b_y - a_y, 2));
+
+    return perimeter;
+}
+
+// MODIFY IT FOR THE STEEPEST ASCENT IMPLEMENTATION
+void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_of_points, int number_of_poly_vertices, float distance, float stop_threshold){
+    bool stuck = false, legal_new_point = true;
+    // Randomly select a vertex
+    int random_index = rand () % number_of_poly_vertices;
+    Point *inspected_point = &poly_vertices[random_index];
+
+    // TODO: CHANGE THE INITIAL VALUE TO SOMETHING MORE RELIABLE
+    float difference_between_perimeters = 10000;
+
+    while(!stuck && stop_threshold < difference_between_perimeters){
+        float perimeter_old = perimeter_of_polygon(poly_vertices, number_of_poly_vertices), perimeter_new = 0.0f;
+        printf("\nVizsgált poligon csúcs: %d, x: %f, y: %f\n", random_index, inspected_point->x, inspected_point->y);
+        printf("Poligon módosítás előtti kerülete: %f\n", perimeter_old);
+
+        // Save the old position for cases where the new position of the vertex is illegal
+        Point old_pos = *inspected_point;
+        // Randomly select a direction (x or y coordinate) to modify
+        // x = 0, y = 1;
+        int direction = rand () % 2;
+        if(direction == 0) inspected_point->x -= distance;
+        else inspected_point->y -= distance;
+        
+        perimeter_new = perimeter_of_polygon(poly_vertices, number_of_poly_vertices);
+
+        for(int i = 0; i < number_of_points; i++){
+            if(!is_point_inside_poly(&points[i], poly_vertices, 100.0f, number_of_points, number_of_poly_vertices) || perimeter_old < perimeter_new){
+                // If a point is outside of the polygon or the new perimeter of the polygon is bigger than the old perimeter, revert the modified point's coordinates and random select a new vertex
+                *inspected_point = old_pos;
+                // Randomly select a vertex
+                random_index = rand () % number_of_poly_vertices;
+                inspected_point = &poly_vertices[random_index];
+                // Do not print the new perimeter if the new point is illegal
+                legal_new_point = false;
+                break;
+            } else {
+                legal_new_point = true;
+            }
+        }
+        if(legal_new_point){
+            printf("Poligon módosítás utáni kerülete: %f\n", perimeter_new);
+            // The new perimeter should be smaller, but just in case I calculate abs
+            difference_between_perimeters = perimeter_old - perimeter_new;
+        }
+    }
 }
