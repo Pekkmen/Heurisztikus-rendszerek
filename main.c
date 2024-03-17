@@ -253,9 +253,9 @@ Point find_min(Point *inspected_point, float radius, int sector, Point *center_p
 
 // MODIFY IT FOR THE STEEPEST ASCENT IMPLEMENTATION
 void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_of_points, int number_of_poly_vertices, float distance, float stop_threshold, Point *center_point, float radius){
-    bool stuck = false, legal_new_point = true;
+    bool stuck = false;
     // Randomly select a vertex
-    int index = rand () % number_of_poly_vertices;
+    int index = rand () % number_of_poly_vertices, min_index;
     Point *inspected_point = &poly_vertices[index];
 
     // The algorithm will run until either stuck or this value is below the stop threshold
@@ -265,41 +265,57 @@ void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_
 
     while(!stuck && stop_threshold < difference_between_perimeters){
         printf("\n%d. kör\n", counter++);
+        Point min_vertex;
         // Save the current perimeter
-        float perimeter_old = perimeter_of_polygon(poly_vertices, number_of_poly_vertices), perimeter_new = 0.0f;
+        float perimeter_old = perimeter_of_polygon(poly_vertices, number_of_poly_vertices), perimeter_new = 0.0f, perimeter_min = -1.0f;
         // Print data regarding the inspected point
-        printf("Vizsgált poligon csúcs: %d, x: %f, y: %f\n", index, inspected_point->x, inspected_point->y);
         printf("Poligon módosítás előtti kerülete: %f\n", perimeter_old);
 
-        // Save the old position in case the new position of the vertex is illegal
-        Point old_pos = *inspected_point;
         // The radius around the inspected point will be sliced up into <sector> number of parts
         int sector = 10;
-        // Find the min neighbour of the inspected point
-        *inspected_point = find_min(inspected_point, radius, sector, center_point);
-        
-        perimeter_new = perimeter_of_polygon(poly_vertices, number_of_poly_vertices);
 
-        for(int i = 0; i < number_of_points; i++){
-            if(!is_point_inside_poly(&points[i], poly_vertices, 100.0f, number_of_poly_vertices)/*|| perimeter_old < perimeter_new*/){
-                // If a point is outside of the polygon, revert the modified point's coordinates and random select a new vertex
-                *inspected_point = old_pos;
-                // Select the poly vertex
-                if(index < number_of_poly_vertices-1) index++;
-                else index = 0;
+        for(int poly_vertex = 0; poly_vertex < number_of_poly_vertices; poly_vertex++){
+            printf("Vizsgált poligon csúcs: %d, x: %f, y: %f\n", index, inspected_point->x, inspected_point->y);
+            // Save the old position in case the new position of the vertex is illegal
+            Point old_pos = *inspected_point;
+            // Find the min neighbour of the inspected point
+            *inspected_point = find_min(inspected_point, radius, sector, center_point);
 
-                inspected_point = &poly_vertices[index];
-                // Do not print the new perimeter if the new point is illegal
-                legal_new_point = false;
-                break;
-            } else {
-                legal_new_point = true;
+            // Check if the new poly vertex position is legal
+            for(int i = 0; i < number_of_points; i++){
+                if(!is_point_inside_poly(&points[i], poly_vertices, 100.0f, number_of_poly_vertices) /*|| perimeter_old < perimeter_new*/){
+                    // If a point is outside of the polygon, revert the modified point's coordinates
+                    *inspected_point = old_pos;
+                    continue;
+                }
             }
+
+            // If the new position is legal, save the new perimeter
+            perimeter_new = perimeter_of_polygon(poly_vertices, number_of_poly_vertices);
+
+            // If the new perimeter is smaller than the know smallest perimeter, save the change (or if the new perimeter hasn't been initialize yet)
+            if(perimeter_new < perimeter_min || perimeter_min < 0){
+                perimeter_min = perimeter_new;
+                min_vertex = *inspected_point;
+                min_index = index;
+            }
+
+            if(index < number_of_poly_vertices - 1) index++;
+            else index = 0;
+            // Revert back the changes for the remaining tests
+            *inspected_point = old_pos;
+            // Check the next vertex
+            inspected_point = &poly_vertices[index];
         }
-        if(legal_new_point){
-            printf("\nPoligon módosítás utáni kerülete: %f\n", perimeter_new);
-            // The new perimeter should be smaller, but just in case I calculate abs
-            difference_between_perimeters = perimeter_old - perimeter_new;
-        }
+
+        // Change the point at which the biggest upgrade could be made
+        poly_vertices[min_index] = min_vertex;
+        // Print its value
+        printf("A poligon %d. csúcsának új koordinátája: x = %f, y = %f\n", min_index, inspected_point->x, inspected_point->y);
+        // Check the next vertex
+        inspected_point = &poly_vertices[index];
+
+        printf("\nPoligon módosítás utáni kerülete: %f\n", perimeter_min);
+        difference_between_perimeters = perimeter_old - perimeter_min;
     }
 }
