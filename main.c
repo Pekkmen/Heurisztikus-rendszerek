@@ -9,8 +9,9 @@ typedef struct Point{
     float y;
 } Point;
 
-bool is_point_inside_poly(Point *, Point *, float, int, int);
-void hill_climbing_steepest_asc(Point *, Point *, int, int, float, float);
+bool is_point_inside_poly(Point *, Point *, float, int);
+void hill_climbing_steepest_asc(Point *, Point *, int, int, float, float, Point *, float);
+Point find_min(Point *, float, int, Point *);
 float perimeter_of_polygon(Point *, int);
 
 int main(){
@@ -109,18 +110,20 @@ int main(){
         printf("%d. csúcs = x: %f, y: %f\n", i, poly_verticies[i].x, poly_verticies[i].y);
     }
 
-    if(is_point_inside_poly(&points[0], poly_verticies, max_x, number_of_points, number_of_poly_vertices)) printf("\nDEBUG: INSIDE\n");
+    if(is_point_inside_poly(&points[0], poly_verticies, max_x, number_of_poly_vertices)) printf("\nDEBUG: INSIDE\n");
     else printf("\nDEBUG: OUTSIDE\n");
 
     // The hill climbing algorithm with the steepest ascent implementation
     float distance = 0.5;
     float stop_threshold = 0.05;
-    hill_climbing_steepest_asc(points, poly_verticies, number_of_points, number_of_poly_vertices, distance, stop_threshold);
+    // The radius of the area around the vertex point of the poly
+    float search_area_radius = 1.0f;
+    hill_climbing_steepest_asc(points, poly_verticies, number_of_points, number_of_poly_vertices, distance, stop_threshold, &center_point, search_area_radius);
 
     return 0;
 }
 
-bool is_point_inside_poly(Point *point_a, Point *poly_verticies, float max_x, int number_of_points, int number_of_poly_vertices){
+bool is_point_inside_poly(Point *point_a, Point *poly_verticies, float max_x, int number_of_poly_vertices){
     // The ray casting algorithm is used for checking whether a point is inside the polygon (https://en.wikipedia.org/wiki/Point_in_polygon)
     // First, we create a long vector: point_a will be the point we are checking to see if it's inside the polygon; point_b will be the end of this vector, drawn beyond the farthest x point, ensuring it will definitely intersect one of the polygon's edges at least once
     Point point_b = (Point){
@@ -170,8 +173,8 @@ bool is_point_inside_poly(Point *point_a, Point *poly_verticies, float max_x, in
     }
     // If the point is on the outside of the polygon the vector will intersect its edge an odd number of times (BECAUSE OUR POINTS START INSIDE THE POLYGON!)
     // The counter starts at -1, and odd + odd = even
-    else if(counter % 2 == 0) return true;
-    else return false;
+    else if(counter % 2 == 0) return true; // inside
+    else return false; // outside
 }
 
 float perimeter_of_polygon(Point *poly_vertices, int number_of_poly_vertices){
@@ -195,38 +198,97 @@ float perimeter_of_polygon(Point *poly_vertices, int number_of_poly_vertices){
     return perimeter;
 }
 
+// Point find_min(Point *inspected_point, float radius, int sector, Point *center_point){
+//     // This function returns the point within a radius of the inspected point that is closer to the center point
+//     // The sector defines how many pieces the circle should be sliced into to check out each possible candidate solution
+//     double degree =  (2 * M_PI) / sector;
+//     // The min will store the point closer to the center point, while the relevant store the inspected candidate solution
+//     Point min;
+//     // Draw a circle sector around the point (each new point will be a candidate solution)
+//     for(int i = 0; i < sector; i++){
+//         float x = (float)(radius * cos(degree*(i+1)) + center_point->x);
+//         float y = (float)(radius * sin(degree*(i+1)) + center_point->y);
+//         // Initialize the closest point to the center with the first candidate solution
+//         if(i == 0) min = (Point){
+//             .x = x,
+//             .y = y
+//         };
+
+//         // If the new coordinates are closer to the center point, the new coordinates will be selected as the minimum point
+//         if(abs(center_point->x - x) <= abs(center_point->x - min.x) && abs(center_point->y - y) <= abs(center_point->y - min.y)){
+//             min.x = x;
+//             min.y = y;
+//         }
+//     }
+//     // Print values for checking
+//     printf("A poligon vizsgált csúcsának koordinátája, x: %f, y: %f\nVizsgált sugár: %f\nA kör szeleteinek darabszáma %d\nA pontok középpontjának koordinátája, x: %f, y: %f\n", inspected_point->x, inspected_point->y, radius, sector, center_point->x, center_point->y);
+//     return min;
+// }
+
+Point find_min(Point *inspected_point, float radius, int sector, Point *center_point) {
+    Point min;
+    // Initialize minimum distance to a very large value
+    float min_distance = 100000.f; 
+
+    double degree = (2 * M_PI) / sector;
+
+    // Iterate through sectors
+    for (int i = 0; i < sector; i++) {
+        float x = inspected_point->x + radius * cos(degree * i);
+        float y = inspected_point->y + radius * sin(degree * i);
+
+        // Calculate distance to center point
+        float distance_to_center = sqrt(pow(center_point->x - x, 2) + pow(center_point->y - y, 2));
+
+        // If the distance is smaller than the minimum distance found so far, update min
+        if (distance_to_center < min_distance) {
+            min_distance = distance_to_center;
+            min.x = x;
+            min.y = y;
+        }
+    }
+
+    return min;
+}
+
 // MODIFY IT FOR THE STEEPEST ASCENT IMPLEMENTATION
-void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_of_points, int number_of_poly_vertices, float distance, float stop_threshold){
+void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_of_points, int number_of_poly_vertices, float distance, float stop_threshold, Point *center_point, float radius){
     bool stuck = false, legal_new_point = true;
     // Randomly select a vertex
-    int random_index = rand () % number_of_poly_vertices;
-    Point *inspected_point = &poly_vertices[random_index];
+    int index = rand () % number_of_poly_vertices;
+    Point *inspected_point = &poly_vertices[index];
 
-    // TODO: CHANGE THE INITIAL VALUE TO SOMETHING MORE RELIABLE
-    float difference_between_perimeters = 10000;
+    // The algorithm will run until either stuck or this value is below the stop threshold
+    float difference_between_perimeters = 2 * stop_threshold;
+    // Counter ti be incremented each iteration
+    int counter = 0;
 
     while(!stuck && stop_threshold < difference_between_perimeters){
+        printf("\n%d. kör\n", counter++);
+        // Save the current perimeter
         float perimeter_old = perimeter_of_polygon(poly_vertices, number_of_poly_vertices), perimeter_new = 0.0f;
-        printf("\nVizsgált poligon csúcs: %d, x: %f, y: %f\n", random_index, inspected_point->x, inspected_point->y);
+        // Print data regarding the inspected point
+        printf("Vizsgált poligon csúcs: %d, x: %f, y: %f\n", index, inspected_point->x, inspected_point->y);
         printf("Poligon módosítás előtti kerülete: %f\n", perimeter_old);
 
-        // Save the old position for cases where the new position of the vertex is illegal
+        // Save the old position in case the new position of the vertex is illegal
         Point old_pos = *inspected_point;
-        // Randomly select a direction (x or y coordinate) to modify
-        // x = 0, y = 1;
-        int direction = rand () % 2;
-        if(direction == 0) inspected_point->x -= distance;
-        else inspected_point->y -= distance;
+        // The radius around the inspected point will be sliced up into <sector> number of parts
+        int sector = 10;
+        // Find the min neighbour of the inspected point
+        *inspected_point = find_min(inspected_point, radius, sector, center_point);
         
         perimeter_new = perimeter_of_polygon(poly_vertices, number_of_poly_vertices);
 
         for(int i = 0; i < number_of_points; i++){
-            if(!is_point_inside_poly(&points[i], poly_vertices, 100.0f, number_of_points, number_of_poly_vertices) || perimeter_old < perimeter_new){
-                // If a point is outside of the polygon or the new perimeter of the polygon is bigger than the old perimeter, revert the modified point's coordinates and random select a new vertex
+            if(!is_point_inside_poly(&points[i], poly_vertices, 100.0f, number_of_poly_vertices)/*|| perimeter_old < perimeter_new*/){
+                // If a point is outside of the polygon, revert the modified point's coordinates and random select a new vertex
                 *inspected_point = old_pos;
-                // Randomly select a vertex
-                random_index = rand () % number_of_poly_vertices;
-                inspected_point = &poly_vertices[random_index];
+                // Select the poly vertex
+                if(index < number_of_poly_vertices-1) index++;
+                else index = 0;
+
+                inspected_point = &poly_vertices[index];
                 // Do not print the new perimeter if the new point is illegal
                 legal_new_point = false;
                 break;
@@ -235,7 +297,7 @@ void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_
             }
         }
         if(legal_new_point){
-            printf("Poligon módosítás utáni kerülete: %f\n", perimeter_new);
+            printf("\nPoligon módosítás utáni kerülete: %f\n", perimeter_new);
             // The new perimeter should be smaller, but just in case I calculate abs
             difference_between_perimeters = perimeter_old - perimeter_new;
         }
