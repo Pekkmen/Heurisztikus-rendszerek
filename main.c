@@ -299,13 +299,12 @@ void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_
                 min_vertex = *inspected_point;
                 min_index = index;
             }
+            // Revert back the changes for the remaining tests
+            // *inspected_point = old_pos;
+            poly_vertices[index] = old_pos;
 
             if(index < number_of_poly_vertices - 1) index++;
             else index = 0;
-            // Revert back the changes for the remaining tests
-            *inspected_point = old_pos;
-            // Check the next vertex
-            inspected_point = &poly_vertices[index];
         }
 
         // Change the point at which the biggest upgrade could be made
