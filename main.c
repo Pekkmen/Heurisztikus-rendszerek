@@ -285,7 +285,14 @@ void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_
             for(int i = 0; i < number_of_points; i++){
                 if(!is_point_inside_poly(&points[i], poly_vertices, 100.0f, number_of_poly_vertices) /*|| perimeter_old < perimeter_new*/){
                     // If a point is outside of the polygon, revert the modified point's coordinates
+                    printf("DEBUG: The new position of the vertex %d is illegal! Reverting changes\n", i);
                     *inspected_point = old_pos;
+                    
+                    // Calculate the next index
+                    if(index < number_of_poly_vertices - 1) index++;
+                    else index = 0;
+                    // Check the next vertex
+                    inspected_point = &poly_vertices[index];
                     continue;
                 }
             }
@@ -310,7 +317,7 @@ void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_
         // Change the point at which the biggest upgrade could be made
         poly_vertices[min_index] = min_vertex;
         // Print its value
-        printf("A poligon %d. csúcsának új koordinátája: x = %f, y = %f\n", min_index, inspected_point->x, inspected_point->y);
+        printf("A poligon %d. csúcsának új koordinátája: x = %f, y = %f\n", min_index, min_vertex.x, min_vertex.y);
         // Check the next vertex
         inspected_point = &poly_vertices[index];
 
