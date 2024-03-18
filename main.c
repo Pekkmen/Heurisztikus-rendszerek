@@ -11,7 +11,7 @@ typedef struct Point{
 
 bool is_point_inside_poly(Point *, Point *, float, int);
 void hill_climbing_steepest_asc(Point *, Point *, int, int, float, float, Point *, float);
-Point find_min(Point *, float, int, Point *);
+Point find_min(Point, float, int, Point *);
 float perimeter_of_polygon(Point *, int);
 
 int main(){
@@ -120,6 +120,11 @@ int main(){
     float search_area_radius = 1.0f;
     hill_climbing_steepest_asc(points, poly_verticies, number_of_points, number_of_poly_vertices, distance, stop_threshold, &center_point, search_area_radius);
 
+    printf("\n\nAz új koordináták:\n");
+    for(int i = 0; i < number_of_poly_vertices; i++){
+        printf("%d. csúcs = x: %f, y: %f\n", i, poly_verticies[i].x, poly_verticies[i].y);
+    }
+
     return 0;
 }
 
@@ -226,8 +231,9 @@ float perimeter_of_polygon(Point *poly_vertices, int number_of_poly_vertices){
 //     return min;
 // }
 
-Point find_min(Point *inspected_point, float radius, int sector, Point *center_point) {
+Point find_min(Point point, float radius, int sector, Point *center_point) {
     Point min;
+    Point *inspected_point = &point;
     // Initialize minimum distance to a very large value
     float min_distance = 100000.f; 
 
@@ -257,49 +263,74 @@ void hill_climbing_steepest_asc(Point *points, Point *poly_vertices, int number_
     bool stuck = false;
     // Randomly select a vertex
     int index = rand () % number_of_poly_vertices, min_index;
-    Point *inspected_point = &poly_vertices[index];
 
     // The algorithm will run until either stuck or this value is below the stop threshold
     float difference_between_perimeters = 2 * stop_threshold;
-    // Counter ti be incremented each iteration
+    // Counter to be incremented each iteration
     int counter = 0, sector = 10;
     float old_perimeter = -1.0f, new_perimeter = -1.0f, min_perimeter = -1.0f;
 
     while(!stuck && stop_threshold < difference_between_perimeters){
+        //Point *inspected_point = &poly_vertices[index];
+        Point min_point;
         printf("%d. kör\n", ++counter);
         bool illegal_move_found = false;
 
         for(int i = 0; i < number_of_poly_vertices; i++){
-            printf("Kivizsgálásra választott poligon csúcs = index: %d, x: %f, y: %f\n", index, inspected_point->x, inspected_point->y);
-            Point old_pos = *inspected_point;
-            
+            printf("Kivizsgálásra választott poligon csúcs = index: %d, x: %f, y: %f\n", index, poly_vertices[index].x, poly_vertices[index].y);
             old_perimeter = perimeter_of_polygon(poly_vertices, number_of_poly_vertices);
             printf("A poligon eredeti kerülete: %f\n", old_perimeter);
 
-            *inspected_point = find_min(inspected_point, radius, sector, center_point);
-            printf("Found new position for vertex %d =  x: %f, y: %f\n", index, inspected_point->x, inspected_point->y);
+            // Later we will need to revert the changes to check the remaining vertces
+            Point original_pos = poly_vertices[index];
 
+            // Find the minimum point of that vertex
+            poly_vertices[index] = find_min(poly_vertices[index], radius, sector, center_point);
+            printf("A csúcs új pozíciója %d =  x: %f, y: %f\n", index, poly_vertices[index].x, poly_vertices[index].y);
+
+            // Check if any point is outside of the polygon. If yes, then revert changes and go for the next vertex
             for(int j = 0; j < number_of_points; j++){
                 if(!is_point_inside_poly(&points[j], poly_vertices, 100.0f, number_of_poly_vertices)){
                     printf("The point with index %d (x:%f, y:%f) was found outside of the poly!\n", j, points[j].x, points[j].y);
-                    printf("Reverting changes from x: %f, y: %f\n", inspected_point->x, inspected_point->y);
-                    *inspected_point = old_pos;
-                    printf("to x: %f, y: %f", inspected_point->x, inspected_point->y);
+                    printf("Változtatások visszaállítása az új koordinátákból x: %f, y: %f\n", poly_vertices[index].x, poly_vertices[index].y);
+                    // Revert changes by restoring original coordinates
+                    poly_vertices[index] = original_pos;
+                    printf("a régibe x: %f, y: %f\n", poly_vertices[index].x, poly_vertices[index].y);
                     illegal_move_found = true;
+                    
+                    if(index < number_of_poly_vertices-1) index++;
+                    else index = 0; 
                     break;
                 }
             }
 
+            // Check the next vertex
             if(illegal_move_found){
-                //break;
-                // TEMPORARY
-                return;
+                continue;
             }
 
             new_perimeter = perimeter_of_polygon(poly_vertices, number_of_poly_vertices);
             printf("A poligon új kerülete: %f\n", new_perimeter);
-            return;
 
+            // If the new perimeter is smaller then the smallest perimeter, make the appropriate changes
+            if(new_perimeter < min_perimeter || min_perimeter < 0){
+                min_perimeter = new_perimeter;
+                min_index = index;
+                min_point = poly_vertices[index];
+                printf("Új legkisebb kerület lett találva ebben a körben!\n");
+            }
+            
+            // Reverting changes for the remaining tests
+            poly_vertices[index] = original_pos;
+            // Go for the next vertex
+            if(index < number_of_poly_vertices-1) index++;
+            else index = 0;
         }
+        printf("A legjobb új kerületet a %d. csúcs hozta, x: %f, y: %f\n", min_index, poly_vertices[min_index].x, poly_vertices[min_index].y);
+        poly_vertices[min_index] = min_point;
+        printf("Új koordinátái x: %f, y:%f\n", poly_vertices[min_index].x, poly_vertices[min_index].y);
+        difference_between_perimeters = old_perimeter - min_perimeter;
+        printf("\n-------------------------------------\n");
     }
 }
+
